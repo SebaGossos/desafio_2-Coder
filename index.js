@@ -12,16 +12,21 @@ const featureProd = {
 
 const product1 = new ProductManager( 'products.json' )
 
-console.log(product1.getProducts())
+const test = async() => {
 
-// product1.addProduct( featureProd )
+    console.log( product1.getProducts() )
 
-// console.log(product1.getProducts())
+    await product1.addProduct( featureProd )
 
-// console.log( product1.getProductsById(1) )
+    console.log( product1.getProducts() )
+    
+    console.log( product1.getProductsById( 1 ))
+    
+    console.log( product1.updateProduct( 1, {stock:34, price:333}) ) 
+    
+    // await product1.deleteProduct()
+}
+test()
 
-// console.log(product1.updateProduct( 1, {stock:34, price:333})) 
-
-// product1.deleteProduct()
 
 
