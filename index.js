@@ -10,6 +10,15 @@ const featureProd = {
     stock:25
 }
 
+const featureProd2 = {
+    title: 'producto prueba',
+    description:'Este es un producto prueba',
+    price:200,
+    thumbnail:'Sin imagen',
+    code:'abc123',
+    stock:25
+}
+
 const product1 = new ProductManager( 'products.json' )
 
 const test = async() => {
@@ -17,6 +26,8 @@ const test = async() => {
     console.log( product1.getProducts() )
 
     await product1.addProduct( featureProd )
+
+    // await product1.addProduct( featureProd2 )
 
     console.log( product1.getProducts() )
     

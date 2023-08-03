@@ -23,7 +23,7 @@ export class ProductManager {
         await fs.promises.writeFile(this.#_path, JSON.stringify(this.#_products, null, 2) )
     }
 
-    addProduct( product ){
+    async addProduct( product ){
         const {
             title,
             description,
@@ -36,7 +36,7 @@ export class ProductManager {
         if ( this.#_products.some( p => p.code === code ) ) throw new Error(`Code: ${ code } must be unique, now is repetead!`)
         product.id = this.#createId()
         this.#_products.push( product )
-        setTimeout(() => this.#addProdJSON(),100)
+        await this.#addProdJSON()
         return product
     }
 
