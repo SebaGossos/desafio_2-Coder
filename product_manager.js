@@ -1,87 +1,76 @@
 import fs from 'fs'
 
 export class ProductManager {
-    #_path
-    #_products = []
+    #_path;
     constructor( path ){
         this.#_path = path;
-        this.#init()
     }
 
-    async #init(){
-        if ( !fs.existsSync( this.#_path ) ) 
-            await fs.promises.writeFile( this.#_path, JSON.stringify([], null, 2) )
+    async #prodJSON( product, productsReady ){
+        if ( productsReady ){
+            await fs.promises.writeFile( this.#_path, JSON.stringify( productsReady, null, 2 ))
+            return productsReady;
+        }
+        const isProducts = fs.existsSync(this.#_path);
+        let products = []
+        if( isProducts ) {
+            let data = await fs.promises.readFile( this.#_path, "utf-8")
+            products = [...JSON.parse( data )]
+        }
+        if( product ) products.push( product )
+        await fs.promises.writeFile(this.#_path, JSON.stringify(products, null, 2) )
+        return products
     }
 
-    #createId(){
-        let id = this.#_products.length + 1 
-        const lastProd = this.#_products[this.#_products.length - 1]?.id
-        return this.#_products.some( p => p.id === id ) ? lastProd + 1 : id;
+    async generateId (){
+        const products = await this.#prodJSON()
+        return products.at(-1)?.id + 1 || 1;
     }
 
-    async #addProdJSON(){
-        await fs.promises.writeFile(this.#_path, JSON.stringify(this.#_products, null, 2) )
-    }
-
-    addProduct( product ){
-        const {
-            title,
-            description,
-            price,
-            thumbnail,
-            code,
-            stock
-        } = product
+    async addProduct( product ){
+        const { title, description, price, thumbnail, code, stock } = product
         if ( !title || !description || !price || !thumbnail || !code || !stock ) throw new Error('Must submit all required fields')
-        if ( this.#_products.some( p => p.code === code ) ) throw new Error(`Code: ${ code } must be unique, now is repetead!`)
-        product.id = this.#createId()
-        this.#_products.push( product )
-        setTimeout(() => this.#addProdJSON(),100)
+        const products = await this.#prodJSON()
+        if (products.some( p => p.code === code )) throw new Error(`Code: ${ code } must be unique, now is repetead!`);
+        product.id = await this.generateId()
+        await this.#prodJSON( product )
         return product
     }
 
-    getProducts = () => this.#_products;
+    getProducts = async() => await this.#prodJSON();
 
-    getProductsById = ( id ) => {
-        const prod = this.#_products.find( p => p.id === id );
-        if( !prod ) throw new Error( `Don´t found the id: ${ id }`);
-        return prod
+    getProductsById = async( id ) => {
+        const products = await this.#prodJSON()
+        const product = products.find( p => p.id === id )
+        if ( !product ) throw new Error( `DIN´T FOUND A PRODUCT WITH ID: ${ id }`)
+        return product
     }
     
-    updateProduct( id, product){
-        const {
-            title,
-            description,
-            price,
-            thumbnail,
-            code,
-            stock
-        } = product
-        if ( !id && !title && !description && !price && !thumbnail && !code && !stock ) throw new Error( 'At least one valid property within an object is required to update: like = {title: "Hello World", price: 27}')
+    async updateProduct( id, product){
+        const { title, description, price, thumbnail, code, stock } = product
+        if ( !id || (!title && !description && !price && !thumbnail && !code && !stock) ) throw new Error('Must be an ID and property to change like => {stock:222, description: "Hello World"}')
+        let products = await this.#prodJSON()
+        const isRepeteadCode = products.some( p => p.code === code )
+        if ( isRepeteadCode ) throw new Error( `Code must be unique: ${ code }` )
+        const newProd = {}
 
-        const productUpdate = this.getProductsById( id );
-        console.log( 'a',productUpdate )
-        let newProduct = {}
-        for( const prop in productUpdate ){
-            newProduct[prop] = product[prop] || productUpdate[prop]
-        }
-
-        this.#_products = this.#_products.map( p => {
-            if(p.id === id) return p = newProduct;
+        const newProducts = products.map( p => {
+            if ( p.id === id ) {
+                for ( const prop in p ) newProd[prop] = product[prop] || p[prop];
+                return newProd;
+            }
             return p
         })
-        
-        this.#addProdJSON()
-        return this.#_products
+
+        await this.#prodJSON( null, newProducts )
+        return newProducts
     }
 
     async deleteProduct( id ) {
-        
-        if (!this.#_products.find( p => p.id === id )) throw new Error( `Don´t found the id: ${ id }` )
-        
-        this.#_products = this.#_products.filter( p => {
-            return p.id !== id
-        })
-        
+        let products = await this.getProducts()
+        if ( !products.some( p => p.id === id )) throw new Error(`ID: ${ id } not found`);
+        products = products.filter( p => p.id !== id )
+        await this.#prodJSON( null, products )
+        return products;
     }
 }
